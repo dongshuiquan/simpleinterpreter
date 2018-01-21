@@ -106,10 +106,10 @@ class Interpreter(object):
             token = self.current_token
             if token.type == MUL:
                 self.eat(MUL)
-                result = result * self.term()
+                result = result * self.factor()
             elif token.type == DIV:
                 self.eat(DIV)
-                result = result / self.term()
+                result = result / self.factor()
         return result
 
     def expr(self):
