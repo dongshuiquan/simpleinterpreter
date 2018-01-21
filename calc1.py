@@ -1,7 +1,7 @@
 # coding:utf-8
 
 # Token types
-INTEGER, PLUS, MINUS, EOF = 'INTEGER', 'PLUS', 'MINUS',  'EOF'
+INTEGER, PLUS, MINUS, MUL, DIV, EOF = 'INTEGER', 'PLUS', 'MINUS', 'MUL', 'DIV', 'EOF'
 
 
 class Token(object):
@@ -18,11 +18,10 @@ class Token(object):
         return self.__str__()
 
 
-class Interpreter(object):
+class Lexer(object):
     def __init__(self, text):
         self.text = text
         self.pos = 0
-        self.current_token = None
         self.current_char = self.text[self.pos]
 
     def error(self):
@@ -59,22 +58,48 @@ class Interpreter(object):
             if self.current_char == '-':
                 self.advance()
                 return Token(MINUS, '-')
+            if self.current_char == '*':
+                self.advance()
+                return Token(MUL, '*')
+            if self.current_char == '/':
+                self.advance()
+                return Token(DIV, '/')
             self.error()
         return Token(EOF, None)
 
+
+class Interpreter(object):
+    def __init__(self, lexer):
+        self.lexer = lexer
+        self.current_token = self.lexer.get_next_token()
+
+    def error(self):
+        raise Exception('Invalid syntax')
+
     def eat(self, token_type):
         if self.current_token.type == token_type:
-            self.current_token = self.get_next_token()
+            self.current_token = self.lexer.get_next_token()
         else:
             self.error()
 
-    def term(self):
+    def factor(self):
         token = self.current_token
         self.eat(INTEGER)
         return token.value
 
+    def term(self):
+        result = self.factor()
+        while self.current_token.type in (MUL, DIV):
+            token = self.current_token
+            if token.type == MUL:
+                self.eat(MUL)
+                result = result * self.term()
+            elif token.type == DIV:
+                self.eat(DIV)
+                result = result / self.term()
+        return result
+
     def expr(self):
-        self.current_token = self.get_next_token()
         result = self.term()
         while self.current_token.type in (PLUS, MINUS):
             token = self.current_token
@@ -95,7 +120,8 @@ def main():
             break
         if not text:
             continue
-        interpreter = Interpreter(text)
+        lexer = Lexer(text)
+        interpreter = Interpreter(lexer)
         result = interpreter.expr()
         print(result)
 
