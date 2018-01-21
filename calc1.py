@@ -92,6 +92,12 @@ class Num(AST):
         self.value = token.value
 
 
+class UnaryOp(AST):
+    def __init__(self, op, expr):
+        self.token = self.op = op
+        self.expr = expr
+
+
 class Parser(object):
     def __init__(self, lexer):
         self.lexer = lexer
@@ -108,6 +114,14 @@ class Parser(object):
 
     def factor(self):
         token = self.current_token
+        if token.type == PLUS:
+            self.eat(PLUS)
+            node = UnaryOp(token, self.factor())
+            return node
+        if token.type == MINUS:
+            self.eat(MINUS)
+            node = UnaryOp(token, self.factor())
+            return node
         if token.type == INTEGER:
             self.eat(INTEGER)
             return Num(token)
@@ -145,6 +159,7 @@ class Parser(object):
 
 class NodeVisitor(object):
     def visit(self, node):
+        # print(node.token.value)
         method_name = 'visit_' + type(node).__name__
         visitor = getattr(self, method_name, self.generic_visit)
         return visitor(node)
@@ -170,6 +185,13 @@ class Interpreter(NodeVisitor):
     def visit_Num(self, node):
         return node.value
 
+    def visit_UnaryOp(self, node):
+        op = node.op.type
+        if op == PLUS:
+            return +self.visit(node.expr)
+        elif op == MINUS:
+            return -self.visit(node.expr)
+
     def interpret(self):
         tree = self.parse.parse()
         return self.visit(tree)
@@ -187,7 +209,7 @@ def main():
         parser = Parser(lexer)
         interpreter = Interpreter(parser)
         result = interpreter.interpret()
-        print(result)
+        print("result : ", result)
 
 if __name__ == '__main__':
     main()
